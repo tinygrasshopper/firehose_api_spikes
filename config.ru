@@ -7,11 +7,25 @@ Bundler.require
 #
 
 @@file_reading_process = Proc.new do
-  File.open("big_ass.csv", "r") do |infile|
-    while (line = infile.gets)
-      Fiber.yield line
+  shared_queue = Queue.new
+  shared_flag = false
+
+  EM.defer do
+    File.open("big_ass.csv", "r") do |infile|
+      puts "READING"
+      while (line = infile.gets)
+        shared_queue.push line
+      end
     end
+
+    shared_flag = true
   end
+
+
+  while !shared_flag
+    Fiber.yield shared_queue.pop
+  end
+
 end
 
 class Firehose
@@ -23,11 +37,11 @@ class Firehose
       request_fiber = Fiber.new &@@file_reading_process
 
       process_loop =  proc do
-        if request_fiber.alive?
+        if request_fiber.alive? && env["rack.stream"].state == :open
           chunk request_fiber.resume 
           EM.next_tick process_loop
         else
-          close
+          close if env["rack.stream"].state == :open
         end
       end
 

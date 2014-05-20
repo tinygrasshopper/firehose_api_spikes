@@ -1,7 +1,9 @@
 require 'rubygems'
 require 'bundler'
+
 Bundler.require
 #require 'rack-stream'
+require 'rainbows'
 #
 #
 
@@ -20,5 +22,13 @@ class Firehose
     puts 'Done'
   end
 end
+
+use Raindrops::Middleware
+
+#worker_processes 4
+#Rainbows! do
+  #use :FiberSpawn
+  #worker_connections 100
+#end
 
 run Firehose
